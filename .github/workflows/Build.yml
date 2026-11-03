@@ -83,6 +83,24 @@ jobs:
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
+    - name: Bundle server data (webadmin, Prefabs, Plugins, Protocol)
+      # CMake only emits the executable into build/Server; the runtime data (webadmin UI,
+      # Prefabs structures, Plugins, Protocol) lives in the source Server/ tree. Copy them in
+      # so the uploaded artifact is a complete, runnable server.
+      shell: bash
+      run: |
+        SRC="${{ github.workspace }}/Server"
+        DST="${{ steps.strings.outputs.build-output-dir }}/Server"
+        for d in webadmin Prefabs Plugins Protocol; do
+          if [ -d "$SRC/$d" ]; then
+            mkdir -p "$DST/$d"
+            cp -r "$SRC/$d/." "$DST/$d/"
+            echo "bundled $d"
+          else
+            echo "skip $d (not present in source)"
+          fi
+        done
+
     - if: runner.os == 'Windows'
       name: Create Zip Windows
       run:  powershell Compress-Archive build/Server Cuberite-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.build_type }}.zip
