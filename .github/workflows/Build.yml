@@ -2,6 +2,7 @@
 # See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
 name: Build
 on:
+  workflow_dispatch:
   push:
     tags-ignore:
       - release-*
@@ -67,6 +68,7 @@ jobs:
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      # For Windows (MSVC/Visual Studio generator) we force -A x64 so the produced binary matches 64-bit (x86_64) machines.
       run: >
         cmake -B ${{ steps.strings.outputs.build-output-dir }}
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
@@ -75,7 +77,8 @@ jobs:
         -DBUILD_TOOLS=Yes
         -DSELF_TEST=Yes
         -S ${{ github.workspace }}
-        
+        ${{ runner.os == 'Windows' && '-A x64' || '' }}
+
     - name: Build
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
@@ -181,4 +184,3 @@ jobs:
                 sha: context.sha
               });
             })
-
