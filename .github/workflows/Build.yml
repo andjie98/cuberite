@@ -94,9 +94,12 @@ jobs:
         $dst = "${{ github.workspace }}/staging/Server"
         if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
         New-Item -ItemType Directory -Force -Path $dst | Out-Null
-        # /SL copies symlink/junction targets as real files
+        # /SL copies symlink/junction targets as real files.
+        # NOTE: robocopy exit codes: 0=no copy, 1=copied OK, 2-7=copied w/ extras, >=8=real error.
+        # GitHub treats any non-zero as failure, so only fail on >= 8.
         robocopy $src $dst /E /SL /NFL /NDL /NJH /NJS /NC /NS
-        if ($LASTEXITCODE -gt 1) { exit $LASTEXITCODE }
+        $rc = $LASTEXITCODE
+        if ($rc -ge 8) { exit $rc } else { exit 0 }
 
     - name: Stage server for packaging (dereference symlinks)
       if: runner.os != 'Windows'
